@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Engine Bot - Audio Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-radius: 12px 0 12px 12px;
+        }
+
+        .message.bot .message-content {
+            background: #e8e8e8;
+            color: #333;
+            border-radius: 0 12px 12px 12px;
+        }
+
+        .message-meta {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .loading {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 12px 16px;
+            background: #e8e8e8;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .loading span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: bounce 1.4s infinite;
+        }
+
+        .loading span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                opacity: 0.5;
+                transform: translateY(0);
+            }
+            40% {
+                opacity: 1;
+                transform: translateY(-8px);
+            }
+        }
+
+        .controls {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-record {
+            flex: 1;
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-record:hover {
+            background: #5568d3;
+        }
+
+        .btn-record.recording {
+            background: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .btn-clear {
+            background: #f3f4f6;
+            color: #333;
+            padding: 12px 16px;
+        }
+
+        .btn-clear:hover {
+            background: #e5e7eb;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            font-size: 12px;
+            color: #666;
+            padding: 0 20px;
+        }
+
+        .time {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 8px;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Search Engine Bot</h1>
+            <p>Audio Chat with Hugging Face Transcription</p>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+            <div class="message bot">
+                <div>
+                    <div class="message-content">
+                        👋 Hello! Press the microphone button to record your message. I'll transcribe and respond.
+                    </div>
+                    <div class="message-meta"><span class="time">Ready</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-record" id="recordBtn" onclick="toggleRecording()">
+                <span id="recordIcon">🎤</span>
+                <span id="recordText">Start Recording</span>
+            </button>
+            <button class="btn-clear" onclick="clearChat()">Clear</button>
+        </div>
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let stream;
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await sendAudio(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                updateRecordButton();
+            } catch (error) {
+                alert('Microphone access denied. Please enable it in browser settings.');
+                console.error('Error accessing microphone:', error);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                isRecording = false;
+                updateRecordButton();
+            }
+        }
+
+        function updateRecordButton() {
+            const btn = document.getElementById('recordBtn');
+            const icon = document.getElementById('recordIcon');
+            const text = document.getElementById('recordText');
+
+            if (isRecording) {
+                btn.classList.add('recording');
+                icon.textContent = '⏹️';
+                text.textContent = 'Stop Recording';
+            } else {
+                btn.classList.remove('recording');
+                icon.textContent = '🎤';
+                text.textContent = 'Start Recording';
+            }
+        }
+
+        async function sendAudio(audioBlob) {
+            const chatBox = document.getElementById('chatBox');
+            const status = document.getElementById('status');
+            const recordBtn = document.getElementById('recordBtn');
+
+            // Add user message (audio recorded)
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.innerHTML = `
+                <div>
+                    <div class="message-content">
+                        <strong>Your Message:</strong>
+                        <audio controls style="margin-top: 8px;">
+                            <source src="${URL.createObjectURL(audioBlob)}" type="audio/wav">
+                        </audio>
+                    </div>
+                    <div class="message-meta"><span class="time">${new Date().toLocaleTimeString()}</span></div>
+                </div>
+            `;
+            chatBox.appendChild(userMsg);
+
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot';
+            loadingDiv.innerHTML = `<div class="loading"><span></span><span></span><span></span></div>`;
+            chatBox.appendChild(loadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            recordBtn.disabled = true;
+            status.textContent = 'Transcribing...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'recording.wav');
+
+                const response = await fetch('/talk', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                loadingDiv.remove();
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                status.textContent = 'Transcribed!';
+
+                // Add bot response
+                const botMsg = document.createElement('div');
+                botMsg.className = 'message bot';
+                botMsg.innerHTML = `
+                    <div>
+                        <div class="message-content">
+                            <strong>Transcription (English):</strong><br>
+                            ${data.transcript_en || 'No transcription available'}
+                        </div>
+                        <div class="message-meta">
+                            <span class="time">ID: ${data.id}</span>
+                        </div>
+                    </div>
+                `;
+                chatBox.appendChild(botMsg);
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                // Clear status after 2 seconds
+                setTimeout(() => {
+                    status.textContent = '';
+                }, 2000);
+            } catch (error) {
+                console.error('Error:', error);
+                loadingDiv.remove();
+
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'message bot';
+                errorMsg.innerHTML = `
+                    <div>
+                        <div class="message-content" style="color: #ef4444;">
+                            ❌ Error: ${error.message}
+                        </div>
+                    </div>
+                `;
+                chatBox.appendChild(errorMsg);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                status.textContent = 'Error occurred';
+            } finally {
+                recordBtn.disabled = false;
+            }
+        }
+
+        function clearChat() {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML = `
+                <div class="message bot">
+                    <div>
+                        <div class="message-content">
+                            👋 Hello! Press the microphone button to record your message. I'll transcribe and respond.
+                        </div>
+                        <div class="message-meta"><span class="time">Ready</span></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('status').textContent = '';
+        }
+    </script>
+</body>
+</html>
